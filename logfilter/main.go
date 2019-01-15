@@ -22,6 +22,7 @@ var opts struct {
 	KeysExamined int      `long:"keysExamined" description:"Returns Queries which have examined more keys than this"`
 	Keywords     []string `short:"w" long:"keywords" description:"Keywords to track"`
 	MultiIndex   bool     `long:"mi" description:"Queries using multiple indexes"`
+	DB           []string `long:"database" description:"Databases to track"`
 }
 
 func handleLine(line string) {
@@ -44,7 +45,11 @@ func handleLine(line string) {
 	if err != nil {
 		return
 	}
-	if checkKeyword(line) && slowQuery(tt) && (nonIndexed(line) || multiIndexed(line)) && keysExamined(ke) {
+	if checkKeyword(line) &&
+		slowQuery(tt) &&
+		(nonIndexed(line) || multiIndexed(line)) &&
+		keysExamined(ke) &&
+		toTrackDatabase(getDatabase(lexems)) {
 		fmt.Print(line)
 	}
 }
@@ -88,6 +93,27 @@ func slowQuery(t int) bool {
 		return true
 	}
 	return t > opts.Slow
+}
+
+func getDatabase(lexems []string) string {
+	for i, v := range lexems {
+		if v == "$db:" {
+			return strings.Replace(lexems[i+1], `"`, "", -1)
+		}
+	}
+	return ""
+}
+
+func toTrackDatabase(db string) bool {
+	if len(opts.DB) == 0 {
+		return true
+	}
+	for _, v := range opts.DB {
+		if v == db {
+			return true
+		}
+	}
+	return false
 }
 
 func main() {
