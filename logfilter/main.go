@@ -18,6 +18,7 @@ import (
 
 var opts struct {
 	Slow         int      `long:"slow" description:"Returns lines which are slower than the value in ms"`
+	Fast         int      `long:"fast" description:"Returns lines which are faster than the value in ms"`
 	NonIndex     bool     `long:"ni" description:"Queries that aren't indexed"`
 	KeysExamined int      `long:"keysExamined" description:"Returns Queries which have examined more keys than this"`
 	Keywords     []string `short:"w" long:"keywords" description:"Keywords to track"`
@@ -46,7 +47,7 @@ func handleLine(line string) {
 		return
 	}
 	if checkKeyword(line) &&
-		slowQuery(tt) &&
+		timeQuery(tt) &&
 		(nonIndexed(line) || multiIndexed(line)) &&
 		keysExamined(ke) &&
 		toTrackDatabase(getDatabase(lexems)) {
@@ -88,11 +89,17 @@ func keysExamined(ke int) bool {
 	return ke > opts.KeysExamined
 }
 
-func slowQuery(t int) bool {
-	if opts.Slow == 0 {
+func timeQuery(t int) bool {
+	if opts.Slow == 0 && opts.Fast == 0 {
 		return true
 	}
-	return t > opts.Slow
+	if opts.Slow == 0 {
+		return opts.Fast > t
+	}
+	if opts.Fast == 0 {
+		return t > opts.Slow
+	}
+	return t > opts.Slow && opts.Fast > t
 }
 
 func getDatabase(lexems []string) string {
